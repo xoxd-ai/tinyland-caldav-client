@@ -5,12 +5,17 @@ Dual-mode build: works with both pnpm (standalone) and Bazel (CI/production).
   Standalone: cd packages/tinyland-caldav-client && pnpm build
 """
 
-load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_js//npm:defs.bzl", "npm_link_package", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@tummycrypt_tinyland_caldav_client_npm//:defs.bzl", "npm_link_all_packages")
 load("@tummycrypt_tinyland_caldav_client_npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 npm_link_all_packages(name = "node_modules")
+
+npm_link_package(
+    name = "node_modules/@tummycrypt/tinyland-calendar",
+    src = "@tummycrypt_tinyland_calendar//:pkg",
+)
 
 
 ts_project(
@@ -33,6 +38,7 @@ ts_project(
     deps = [
         ":node_modules",
         ":node_modules/fast-xml-parser",
+        ":node_modules/@tummycrypt/tinyland-calendar",
         ":node_modules/@types/node",
     ],
     visibility = ["//visibility:public"],
@@ -55,6 +61,7 @@ vitest_bin.vitest_test(
         ":node_modules",
         "tsconfig.json",
         ":node_modules/vitest",
+        ":node_modules/@tummycrypt/tinyland-calendar",
         "vitest.config.ts",
     ] + glob(["src/**/*.ts"]) + glob(["tests/**/*.test.ts", "tests/**/*.ts"]),
     args = [
