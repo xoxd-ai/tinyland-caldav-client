@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@tummycrypt/tinyland-calendar':
-        specifier: ^0.2.2
-        version: 0.2.2
       fast-xml-parser:
         specifier: ^5.0.0
         version: 5.7.2
@@ -152,10 +149,6 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
-
-  '@tummycrypt/tinyland-calendar@0.2.2':
-    resolution: {integrity: sha512-9t0dM5Jvhp4+6OznTNMxGEqzsBxLoF2mk7yO1z9lo7XJ+mU+AtU2w5NC9V/hZjzUrE2Bdkq5Qa6aU9XWqDuSPQ==}
-    engines: {node: '>=22.0.0'}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -583,8 +576,6 @@ snapshots:
   '@rolldown/pluginutils@1.0.0-rc.17': {}
 
   '@standard-schema/spec@1.1.0': {}
-
-  '@tummycrypt/tinyland-calendar@0.2.2': {}
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
