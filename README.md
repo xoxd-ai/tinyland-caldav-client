@@ -11,7 +11,7 @@ This package is distributed as the Bazel module
 published to npm.
 
 ```starlark
-bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.0")
+bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.1")
 ```
 
 Link `@tummycrypt_tinyland_caldav_client//:pkg` into your app's

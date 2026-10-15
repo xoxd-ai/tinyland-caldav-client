@@ -2,7 +2,7 @@
 BUILD.bazel for @tummycrypt/tinyland-caldav-client.
 
   Bazel:      bazel build //:pkg //:typecheck && bazel test //...
-  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.0")
+  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.1")
               from xoxd-ai/bazel-registry; the package is not published to npm.
 """
 
@@ -71,7 +71,7 @@ npm_package(
         ":tinyland_caldav_client",
     ],
     package = "@tummycrypt/tinyland-caldav-client",
-    version = "1.0.0",
+    version = "1.0.1",
 )
 
 vitest_bin.vitest_test(

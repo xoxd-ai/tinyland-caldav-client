@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 (2026-10-15)
+
+### Security
+
+- `fast-xml-parser` floor raised from `^5.0.0` to `^5.11.2`, and the lockfile
+  now resolves fast-xml-parser 5.11.2 with fast-xml-builder 1.3.1 (1.0.0 locked
+  fast-xml-builder 1.1.5, affected by GitHub advisories for <= 1.1.6). Bazel
+  consumers provide fast-xml-parser from their own lockfile, so they should
+  resolve it at >= 5.11.2 as well. No API change; prefer 1.0.1 over 1.0.0.
+
 ## 1.0.0 (2026-10-15)
 
 Major release under the 2026-10-08 estate uplift (RU1, RU6, RU8, RU10, RU13).
