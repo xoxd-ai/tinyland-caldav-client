@@ -11,13 +11,18 @@ This package is distributed as the Bazel module
 published to npm.
 
 ```starlark
-bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.1")
+bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.2")
 ```
 
 Link `@tummycrypt_tinyland_caldav_client//:pkg` into your app's
 `node_modules` with `npm_link_package`, then import
 `@tummycrypt/tinyland-caldav-client`. Its in-house dependency
 `tummycrypt_tinyland_calendar` (>= 1.0.0) arrives through the module graph.
+
+`dist/index.js` is one ES module that bundles fast-xml-parser, so the package
+needs only Node built-ins at run time. `dist/THIRD_PARTY_NOTICES.md` lists the
+bundled packages and their licences. `//:pkg_test` checks that the built
+package loads with nothing else installed.
 
 ## Develop
 
