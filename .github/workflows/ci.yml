@@ -41,3 +41,30 @@ jobs:
       npm_publish_mode: disabled
       dry_run: true
     secrets: inherit
+
+  # Builds //:pkg the way a downstream module does: from a separate workspace
+  # that takes this repository as an external Bazel module through
+  # local_path_override, then imports the linked package (TIN-8919). The
+  # package job builds this module only as the root module, which hid paths
+  # that resolve against the output root.
+  consumer:
+    name: consumer workspace
+    runs-on: ${{ fromJson(vars.PRIMARY_LINUX_RUNNER_LABELS_JSON) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Configure self-hosted cache contract
+        uses: xoxd-ai/ci-templates/.github/actions/nix-setup@v3.2.1
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: "22"
+
+      - name: Build //:pkg as an external module
+        working-directory: e2e/consumer
+        run: npx --yes @bazel/bazelisk build @tummycrypt_tinyland_caldav_client//:pkg --config=ci --verbose_failures
+
+      - name: Import the linked package
+        working-directory: e2e/consumer
+        run: npx --yes @bazel/bazelisk test //:consumer_test --config=ci

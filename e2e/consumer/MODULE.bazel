@@ -1,0 +1,29 @@
+"""
+A consumer workspace for tinyland-caldav-client (TIN-8919).
+
+CI builds //:pkg from here, with this repository as an external Bazel module.
+Building it only as the root module hid paths that resolve against the output
+root: an external module's files sit under external/<repo>/ instead.
+
+  cd e2e/consumer
+  bazel build @tummycrypt_tinyland_caldav_client//:pkg
+  bazel test //:consumer_test
+"""
+
+module(
+    name = "tinyland_caldav_client_consumer",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "aspect_rules_js", version = "2.9.1")
+bazel_dep(name = "rules_nodejs", version = "6.7.3")
+
+# The module under test is this repository's working tree, not a registry copy.
+bazel_dep(name = "tummycrypt_tinyland_caldav_client")
+local_path_override(
+    module_name = "tummycrypt_tinyland_caldav_client",
+    path = "../..",
+)
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "22.13.1")

@@ -1,0 +1,15 @@
+"""Links //:pkg of the external module and imports it by name (TIN-8919)."""
+
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
+
+npm_link_package(
+    name = "node_modules/@tummycrypt/tinyland-caldav-client",
+    src = "@tummycrypt_tinyland_caldav_client//:pkg",
+)
+
+js_test(
+    name = "consumer_test",
+    data = [":node_modules/@tummycrypt/tinyland-caldav-client"],
+    entry_point = "consumer.test.mjs",
+)
