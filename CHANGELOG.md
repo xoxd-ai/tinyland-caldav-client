@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.0.2 (2026-11-27)
+
+### Fixed
+
+- A Bazel consumer that tests on remote execution can load the package.
+  scheduling-kit's caldav-busy test failed on GloriousFlywheel with "Cannot
+  find package 'fast-xml-parser'" imported from the linked 1.0.1 package.
+  rules_js links a package's npm dependencies next to it with relative
+  symlinks into this module's external repository. Those resolve in the exec
+  root, but not in a remote test's runfiles tree (TIN-8919).
+- `dist/index.js` is now one ES module, bundled by rolldown 1.2.14, that
+  carries fast-xml-parser 5.11.2 and the 7 packages it uses. The package
+  needs only Node built-ins at run time. The build fails if the bundle keeps
+  any other runtime import.
+- `dist/THIRD_PARTY_NOTICES.md` names each bundled package with its version,
+  author and MIT licence, and carries the licence text the package ships.
+  @nodable/entities 3.1.0 ships no licence file, so its entry gives the
+  licence its package.json states.
+- New test `//:pkg_test`, run in CI: a scratch consumer with only the built
+  package in its node_modules imports it by name, builds a `CalendarClient`
+  and parses a multistatus response. On the 1.0.1 package it fails with the
+  same "Cannot find package 'fast-xml-parser'" error.
+
+### Changed
+
+- fast-xml-parser moves from `dependencies` to `devDependencies`, since the
+  bundle carries it. The package lists no runtime npm dependency, and
+  `//:pkg` no longer links one next to itself in a consumer. A fast-xml-parser
+  update now reaches consumers through a caldav-client release.
+- Exports, types and behaviour are unchanged. The declarations stay one
+  `.d.ts` file per source file.
+
+### Migration
+
+1. Re-pin: `bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.2")`
+   and the xoxd-ai/bazel-registry commit that lists it.
+2. A consumer that added fast-xml-parser to its own lockfile only for this
+   package can drop it.
+
 ## 1.0.1 (2026-10-15)
 
 ### Security

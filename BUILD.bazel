@@ -2,10 +2,11 @@
 BUILD.bazel for @tummycrypt/tinyland-caldav-client.
 
   Bazel:      bazel build //:pkg //:typecheck && bazel test //...
-  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.1")
+  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.2")
               from xoxd-ai/bazel-registry; the package is not published to npm.
 """
 
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@tummycrypt_tinyland_caldav_client_npm//:defs.bzl", "npm_link_all_packages")
@@ -62,16 +63,64 @@ ts_project(
     deps = _LIB_DEPS,
 )
 
+# The package's runtime JavaScript is one ES module that carries
+# fast-xml-parser and its dependencies (TIN-8919). npm_link_package links a
+# package's npm dependencies next to it with relative symlinks into this
+# module's external repository. Those resolve in the exec root but not in a
+# remote test's runfiles tree, so a consumer that tested on remote execution
+# could not find fast-xml-parser. The bundle needs only Node built-ins.
+js_binary(
+    name = "bundle_tool",
+    data = [":node_modules/rolldown"],
+    entry_point = "scripts/bundle.mjs",
+)
+
+js_run_binary(
+    name = "bundle",
+    srcs = [
+        ":node_modules/fast-xml-parser",
+        ":tinyland_caldav_client",
+    ],
+    outs = [
+        "bundle/THIRD_PARTY_NOTICES.md",
+        "bundle/index.js",
+    ],
+    args = [
+        "dist/index.js",
+        "bundle",
+    ],
+    mnemonic = "RolldownBundle",
+    progress_message = "Bundling the runtime of %{label}",
+    tool = ":bundle_tool",
+)
+
+# dist/ keeps the declarations from tsc and takes the bundle in place of the
+# per-file JavaScript.
 npm_package(
     name = "pkg",
     srcs = [
         "CHANGELOG.md",
         "README.md",
         "package.json",
+        ":bundle",
         ":tinyland_caldav_client",
     ],
+    exclude_srcs_patterns = [
+        "**/node_modules/**",
+        "dist/**/*.js",
+    ],
     package = "@tummycrypt/tinyland-caldav-client",
-    version = "1.0.1",
+    replace_prefixes = {"bundle/": "dist/"},
+    version = "1.0.2",
+)
+
+# Loads //:pkg in a scratch consumer that has nothing else installed, the way
+# a remote test sees a package linked from another module.
+js_test(
+    name = "pkg_test",
+    args = ["$(rootpath :pkg)"],
+    data = [":pkg"],
+    entry_point = "tests/pkg-self-contained.mjs",
 )
 
 vitest_bin.vitest_test(
