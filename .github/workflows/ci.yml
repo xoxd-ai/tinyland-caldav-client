@@ -30,14 +30,43 @@ jobs:
       # npm or GitHub Packages publication). @tummycrypt/tinyland-calendar
       # resolves only through the Bazel module graph, so every check runs
       # through Bazel; //:typecheck is the TypeScript 7.0.2 check. //:pkg_test
-      # loads the built package with nothing else installed (TIN-8919).
+      # loads the built package with nothing else installed, and
+      # //:bundle_notices_test covers the refusals of the notices step
+      # (TIN-8919).
       typecheck_command: "npx --yes @bazel/bazelisk build //:typecheck --config=ci"
-      unit_test_command: "npx --yes @bazel/bazelisk test //:test //:pkg_test --config=ci --test_output=errors"
+      unit_test_command: "npx --yes @bazel/bazelisk test //:test //:pkg_test //:bundle_notices_test --config=ci --test_output=errors"
       build_command: "npx --yes @bazel/bazelisk build //:pkg --config=ci"
       package_check_command: "npx --yes @bazel/bazelisk build //:pkg --config=ci && npx --yes publint@0.3.25 ./bazel-bin/pkg"
-      bazel_targets: "//:pkg //:typecheck //:test //:pkg_test"
+      bazel_targets: "//:pkg //:typecheck //:test //:pkg_test //:bundle_notices_test"
       package_dir: ./bazel-bin/pkg
       npm_access: public
       npm_publish_mode: disabled
       dry_run: true
     secrets: inherit
+
+  # Builds //:pkg the way a downstream module does: from a separate workspace
+  # that takes this repository as an external Bazel module through
+  # local_path_override, then imports the linked package (TIN-8919). The
+  # package job builds this module only as the root module, which hid paths
+  # that resolve against the output root.
+  consumer:
+    name: consumer workspace
+    runs-on: ${{ fromJson(vars.PRIMARY_LINUX_RUNNER_LABELS_JSON) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Configure self-hosted cache contract
+        uses: xoxd-ai/ci-templates/.github/actions/nix-setup@v3.2.1
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: "22"
+
+      - name: Build //:pkg as an external module
+        working-directory: e2e/consumer
+        run: npx --yes @bazel/bazelisk build @tummycrypt_tinyland_caldav_client//:pkg --config=ci --verbose_failures
+
+      - name: Import the linked package
+        working-directory: e2e/consumer
+        run: npx --yes @bazel/bazelisk test //:consumer_test --config=ci

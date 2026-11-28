@@ -1,0 +1,3 @@
+# The consumer workspace is its own Bazel module. It takes this repository as
+# an external module, so this module must not load it as packages.
+e2e/consumer

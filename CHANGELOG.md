@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.0.3 (2026-11-27)
+
+1.0.2 does not build as a dependency. Pin 1.0.3 instead.
+
+### Fixed
+
+- A consumer that links `//:pkg` through Bazel can build it. On 1.0.2,
+  `//:bundle` failed with "[UNRESOLVED_ENTRY] Cannot resolve entry module
+  dist/index.js" when this module was an external module. js_run_binary runs
+  the tool in the root of the output tree, and the bare paths it passed
+  missed this module's files under `external/<repo>/` (TIN-8919).
+- `//:bundle` now passes `$(RULEDIR)/dist/index.js` and `$(RULEDIR)/bundle`,
+  and `scripts/bundle.mjs` resolves them against the exec root. The same
+  paths work when this module is the root module.
+- The fast-xml-parser floor refuses a prerelease or a build of 5.12.0, such
+  as 5.12.0-beta. Only a plain release at 5.12.0 or later passes.
+
+### Added
+
+- A CI job builds `//:pkg` from `e2e/consumer`, a separate Bazel module that
+  takes this repository as an external module through `local_path_override`.
+  Its `//:consumer_test` imports the linked package by name and parses a
+  multistatus response.
+- New test `//:bundle_notices_test`, run in CI. It covers each refusal of
+  the notices step: no bundled npm package, no fast-xml-parser, a
+  fast-xml-parser under 5.12.0, a prerelease of 5.12.0 and a package that
+  states no licence.
+
+### Changed
+
+- The notices code moves from `scripts/bundle.mjs` to
+  `scripts/bundle-notices.mjs`, so the test runs it without rolldown. The
+  package contents, exports and types are unchanged.
+
+### Migration
+
+1. Re-pin: `bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.3")`
+   and the xoxd-ai/bazel-registry commit that lists it.
+
 ## 1.0.2 (2026-11-27)
 
 ### Fixed

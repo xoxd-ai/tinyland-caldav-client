@@ -1,0 +1,21 @@
+# A separate consumer of this repository's Bazel module (TIN-8919). It builds
+# @tummycrypt_tinyland_caldav_client//:pkg as an external module, the way a
+# downstream module that pins the registry entry builds it.
+startup --max_idle_secs=120
+
+common --enable_bzlmod
+common --registry=https://raw.githubusercontent.com/xoxd-ai/bazel-registry/main
+common --registry=https://bcr.bazel.build
+# The override points at the working tree, so a lockfile would pin nothing.
+common --lockfile_mode=off
+
+build --jobs=auto
+build --worker_sandboxing
+build --show_timestamps
+
+test --test_output=errors
+
+build:ci --color=no
+build:ci --curses=no
+build:ci --noshow_loading_progress
+test:ci --test_output=errors

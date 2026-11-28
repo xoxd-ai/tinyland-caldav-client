@@ -2,7 +2,7 @@
 BUILD.bazel for @tummycrypt/tinyland-caldav-client.
 
   Bazel:      bazel build //:pkg //:typecheck && bazel test //...
-  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.2")
+  Consumers:  bazel_dep(name = "tummycrypt_tinyland_caldav_client", version = "1.0.3")
               from xoxd-ai/bazel-registry; the package is not published to npm.
 """
 
@@ -71,7 +71,10 @@ ts_project(
 # could not find fast-xml-parser. The bundle needs only Node built-ins.
 js_binary(
     name = "bundle_tool",
-    data = [":node_modules/rolldown"],
+    data = [
+        "scripts/bundle-notices.mjs",
+        ":node_modules/rolldown",
+    ],
     entry_point = "scripts/bundle.mjs",
 )
 
@@ -85,9 +88,14 @@ js_run_binary(
         "bundle/THIRD_PARTY_NOTICES.md",
         "bundle/index.js",
     ],
+    # The tool runs in the root of the output tree, so a bare "dist/index.js"
+    # missed the files of this module when it is another module's dependency:
+    # they sit under external/<repo>/. $(RULEDIR) is this package's output
+    # directory as an exec-root path, which bundle.mjs resolves against the
+    # exec root, whichever module is the root.
     args = [
-        "dist/index.js",
-        "bundle",
+        "$(RULEDIR)/dist/index.js",
+        "$(RULEDIR)/bundle",
     ],
     mnemonic = "RolldownBundle",
     progress_message = "Bundling the runtime of %{label}",
@@ -111,7 +119,7 @@ npm_package(
     ],
     package = "@tummycrypt/tinyland-caldav-client",
     replace_prefixes = {"bundle/": "dist/"},
-    version = "1.0.2",
+    version = "1.0.3",
 )
 
 # Loads //:pkg in a scratch consumer that has nothing else installed, the way
@@ -121,6 +129,14 @@ js_test(
     args = ["$(rootpath :pkg)"],
     data = [":pkg"],
     entry_point = "tests/pkg-self-contained.mjs",
+)
+
+# The refusals of the notices step: no bundled package, no fast-xml-parser, a
+# fast-xml-parser under 5.12.0 and a prerelease of 5.12.0.
+js_test(
+    name = "bundle_notices_test",
+    data = ["scripts/bundle-notices.mjs"],
+    entry_point = "tests/bundle-notices.test.mjs",
 )
 
 vitest_bin.vitest_test(
