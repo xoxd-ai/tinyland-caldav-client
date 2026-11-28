@@ -30,12 +30,14 @@ jobs:
       # npm or GitHub Packages publication). @tummycrypt/tinyland-calendar
       # resolves only through the Bazel module graph, so every check runs
       # through Bazel; //:typecheck is the TypeScript 7.0.2 check. //:pkg_test
-      # loads the built package with nothing else installed (TIN-8919).
+      # loads the built package with nothing else installed, and
+      # //:bundle_notices_test covers the refusals of the notices step
+      # (TIN-8919).
       typecheck_command: "npx --yes @bazel/bazelisk build //:typecheck --config=ci"
-      unit_test_command: "npx --yes @bazel/bazelisk test //:test //:pkg_test --config=ci --test_output=errors"
+      unit_test_command: "npx --yes @bazel/bazelisk test //:test //:pkg_test //:bundle_notices_test --config=ci --test_output=errors"
       build_command: "npx --yes @bazel/bazelisk build //:pkg --config=ci"
       package_check_command: "npx --yes @bazel/bazelisk build //:pkg --config=ci && npx --yes publint@0.3.25 ./bazel-bin/pkg"
-      bazel_targets: "//:pkg //:typecheck //:test //:pkg_test"
+      bazel_targets: "//:pkg //:typecheck //:test //:pkg_test //:bundle_notices_test"
       package_dir: ./bazel-bin/pkg
       npm_access: public
       npm_publish_mode: disabled

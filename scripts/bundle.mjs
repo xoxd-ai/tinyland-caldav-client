@@ -10,11 +10,18 @@
 //
 // Usage: node scripts/bundle.mjs <entry.js> <out-dir>
 // Writes <out-dir>/index.js and <out-dir>/THIRD_PARTY_NOTICES.md.
+//
+// js_run_binary starts this tool in the root of the output tree, while
+// //:bundle passes exec-root paths built from $(RULEDIR). Those paths include
+// external/<repo>/ when this module is a dependency of another module, so
+// they resolve against the exec root that the js_binary launcher exports.
+// Outside Bazel they resolve against the working directory.
 
 import { builtinModules } from 'node:module';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { rolldown } from 'rolldown';
+import { collectNotices, renderNotices } from './bundle-notices.mjs';
 
 const [entry, outDir] = process.argv.slice(2);
 if (!entry || !outDir) {
@@ -31,8 +38,12 @@ function isBuiltin(id) {
   return id.startsWith('node:') || BUILTINS.has(id);
 }
 
+const base = process.env.JS_BINARY__EXECROOT || process.cwd();
+const entryPath = resolve(base, entry);
+const outPath = resolve(base, outDir);
+
 const bundle = await rolldown({
-  input: resolve(entry),
+  input: entryPath,
   platform: 'node',
   external: (id) => isBuiltin(id) || EXTERNAL.includes(id),
 });
@@ -62,104 +73,15 @@ if (leftover.length > 0) {
   process.exit(1);
 }
 
-// One notice per bundled npm package, taken from its own package.json and,
-// when it ships one, its licence file.
-const NODE_MODULES = '/node_modules/';
-
-function packageRoot(moduleId) {
-  const at = moduleId.lastIndexOf(NODE_MODULES);
-  if (at < 0) return null;
-  const rest = moduleId.slice(at + NODE_MODULES.length).split('/');
-  const depth = rest[0].startsWith('@') ? 2 : 1;
-  return moduleId.slice(0, at + NODE_MODULES.length) + rest.slice(0, depth).join('/');
-}
-
-function licenceText(root) {
-  const name = readdirSync(root).find((file) => /^(license|licence|copying)/i.test(file));
-  return name ? readFileSync(join(root, name), 'utf8').trim() : null;
-}
-
-const roots = new Set();
-for (const moduleId of Object.keys(chunk.modules)) {
-  const root = packageRoot(moduleId);
-  if (root) roots.add(root);
-}
-
-function authorOf(manifest) {
-  const { author } = manifest;
-  if (!author) return 'not stated';
-  return typeof author === 'string' ? author : author.name;
-}
-
-const notices = [];
-for (const root of [...roots].sort()) {
-  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-  if (!manifest.license) {
-    console.error(`${manifest.name}@${manifest.version} states no licence`);
-    process.exit(1);
-  }
-  notices.push({
-    name: manifest.name,
-    version: manifest.version,
-    license: manifest.license,
-    author: authorOf(manifest),
-    text: licenceText(root),
-  });
-}
-notices.sort((a, b) => a.name.localeCompare(b.name));
-
-// The bundle exists to carry fast-xml-parser. An empty list means the
-// package resolution changed under us, so the notices would cover nothing.
-if (notices.length === 0) {
-  console.error('the bundle carries no npm package, so it has no notices to write');
+let notices;
+try {
+  notices = collectNotices(Object.keys(chunk.modules));
+} catch (error) {
+  console.error(error.message);
   process.exit(1);
 }
 
-// 5.12.0 fixes GHSA-474x-hrwr-fgx4. Refuse to freeze an older copy.
-const MIN_FAST_XML_PARSER = [5, 12, 0];
-
-function versionParts(version) {
-  return version.split('-')[0].split('.').map((part) => Number.parseInt(part, 10));
-}
-
-function atLeast(version, minimum) {
-  const parts = versionParts(version);
-  for (let i = 0; i < minimum.length; i += 1) {
-    const part = Number.isNaN(parts[i]) || parts[i] === undefined ? 0 : parts[i];
-    if (part !== minimum[i]) return part > minimum[i];
-  }
-  return true;
-}
-
-const parser = notices.find((notice) => notice.name === 'fast-xml-parser');
-if (!parser) {
-  console.error('the bundle does not carry fast-xml-parser');
-  process.exit(1);
-}
-if (!atLeast(parser.version, MIN_FAST_XML_PARSER)) {
-  console.error(
-    `the bundle carries fast-xml-parser ${parser.version}, older than ${MIN_FAST_XML_PARSER.join('.')}`,
-  );
-  process.exit(1);
-}
-
-const lines = [
-  '# Third-party notices',
-  '',
-  'dist/index.js bundles these npm packages. Each keeps its own licence.',
-  '',
-];
-for (const notice of notices) {
-  lines.push(`## ${notice.name} ${notice.version}`, '');
-  lines.push(`Licence: ${notice.license}. Author: ${notice.author}.`, '');
-  if (notice.text) {
-    lines.push('```text', notice.text, '```', '');
-  } else {
-    lines.push('The package ships no licence file. Its package.json states the licence above.', '');
-  }
-}
-
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, 'index.js'), chunk.code);
-writeFileSync(join(outDir, 'THIRD_PARTY_NOTICES.md'), lines.join('\n'));
+mkdirSync(outPath, { recursive: true });
+writeFileSync(join(outPath, 'index.js'), chunk.code);
+writeFileSync(join(outPath, 'THIRD_PARTY_NOTICES.md'), renderNotices(notices));
 console.log(`bundled ${notices.map((n) => `${n.name}@${n.version}`).join(', ')}`);
